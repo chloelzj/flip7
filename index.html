@@ -175,6 +175,7 @@ input[type=text]::placeholder{color:var(--muted);font-weight:400;}
     <button class="cbtn primary" id="btn-flip">🃏 抽牌</button>
     <button class="cbtn" id="btn-stop">🛑 停止锁分</button>
     <button class="cbtn purp" id="btn-action">✨ 出功能牌</button>
+    <button class="cbtn" id="btn-skip">⏭ 跳过功能牌</button>
   </div>
   <div style="display:flex;gap:8px;">
     <button class="cbtn primary" id="btn-next" style="display:none;">下一局 →</button>
@@ -225,6 +226,7 @@ document.getElementById('btn-flip').onclick = doFlip;
 document.getElementById('btn-stop').onclick = doStop;
 document.getElementById('btn-action').onclick = doAction;
 document.getElementById('btn-next').onclick = doNextRound;
+document.getElementById('btn-skip').onclick = doSkip;
 document.getElementById('deck-btn').onclick = doFlip;
 
 // ── 牌组 ──
@@ -351,7 +353,15 @@ function ensureMoveListener(){
     // 读取最新游戏状态再执行
     db.ref('rooms/'+roomCode+'/game').once('value').then(gs=>{
       if(!gs.exists()) return;
-      applyMove(gs.val(), move.type, 'guest', move.idx, move.target||'self');
+      if(move.type==='skip'){
+        const G2=JSON.parse(JSON.stringify(gs.val()));
+        const fixedG=fixArrays(G2);
+        fixedG.turn='host';
+        fixedG.msg=fixedG.guest.name+' 跳过功能牌，换对方。'; fixedG.mc='';
+        saveGame(fixedG,false);
+      } else {
+        applyMove(gs.val(), move.type, 'guest', move.idx, move.target||'self');
+      }
     });
   });
 }
@@ -395,6 +405,25 @@ function doAction(){
   } else {
     // 弹出选择目标
     showTargetPicker(idx, G[opp].name);
+  }
+}
+
+function doSkip(){
+  // 跳过手里的功能牌，换对方回合
+  const G = getLocalGame(); if(!G) return;
+  if(!isMyTurn(G) || G[myRole].stopped || G[myRole].bust || G.over) return;
+  if(myRole==='host'){
+    db.ref('rooms/'+roomCode+'/game').once('value').then(snap=>{
+      const G2 = snap.val(); if(!G2) return;
+      const G3 = JSON.parse(JSON.stringify(G2));
+      const fixedG = fixArrays(G3);
+      const opp = 'guest';
+      fixedG.turn = opp;
+      fixedG.msg = fixedG.host.name+' 跳过功能牌，换对方。'; fixedG.mc='';
+      saveGame(fixedG,false);
+    });
+  } else {
+    db.ref('rooms/'+roomCode+'/move').set({type:'skip',idx:null,ready:true});
   }
 }
 
@@ -479,11 +508,10 @@ function applyMove(G, type, role, idx, target='self'){
     if(card.t==='n'&&hasDup(P.hand,card)){
       if(P.sc){
         P.sc=false;
-        G.msg=P.name+' 抽到重复'+card.v+'，第二次机会救了！'; G.mc='info';
+        G.msg=P.name+' 抽到重复'+card.v+'，第二次机会救了！换 '+O.name+' 抽牌。'; G.mc='info';
       } else {
         P.bust=true;
-        G.msg='💥 '+P.name+' 抽到重复'+card.v+'，爆牌！'; G.mc='bad';
-        saveGame(G,true); return;
+        G.msg='💥 '+P.name+' 爆牌！换 '+O.name+' 抽牌。'; G.mc='bad';
       }
     } else {
       P.hand.push(card);
@@ -491,12 +519,18 @@ function applyMove(G, type, role, idx, target='self'){
         G.msg='🎉 '+P.name+' 集齐 Flip 7！赢得本局！'; G.mc='good';
         saveGame(G,true); return;
       }
-      G.msg = card.t==='a'
-        ? P.name+' 抽到功能牌：'+card.v
-        : P.name+' 抽到 '+card.v+'，继续还是停止？';
-      G.mc='';
+      if(card.t==='a'){
+        G.msg=P.name+' 抽到功能牌：'+card.v+'，可以打出或跳过换对方。'; G.mc='';
+        // 抽到功能牌，不换turn，让玩家选择打出或跳过
+        saveGame(G,false); return;
+      }
+      G.msg=P.name+' 抽到 '+card.v+'。换 '+O.name+' 抽牌。'; G.mc='';
     }
-    // 抽牌后不换人，同一玩家可以继续抽或停止
+    // 抽完数字牌（或爆牌）→ 换对方
+    if(!P.bust){
+      // 正常抽完换对方
+    }
+    G.turn=opp;
   }
   else if(type==='stop'){
     if(P.stopped||P.bust||G.over) return;
@@ -535,7 +569,16 @@ function applyMove(G, type, role, idx, target='self'){
         }
       }
       G.msg='🃏 翻3张给'+tName+'：'+drawn.join('、'); G.mc=T.bust?'bad':'';
-      if(T.bust){saveGame(G,true);return;}
+      if(T.bust){
+        // 如果爆的是对方，自己继续；如果爆的是自己，换对方
+        if(tgt==='opp'){
+          if(O.stopped||O.bust||isF7(O.hand)){ saveGame(G,true); return; }
+          // 对方爆了，还是自己的回合
+        } else {
+          if(!O.stopped&&!O.bust&&!isF7(O.hand)){ G.turn=opp; saveGame(G,false); return; }
+          saveGame(G,true); return;
+        }
+      }
     } else if(card.v==='📤分3张'){
       // 从自己手里拿3张给目标
       let nums=P.hand.filter(c=>c.t==='n').slice(0,3);
@@ -626,15 +669,26 @@ function renderGame(G){
   });
   document.getElementById('my-sum').textContent=nsum(P.hand||[]);
 
-  // 检查selIdx对应的牌是否还是功能牌（防止索引失效）
+  // 检查selIdx对应的牌是否还是功能牌
   const selectedIsAction = selIdx!==null && (P.hand||[])[selIdx] && (P.hand||[])[selIdx].t==='a';
   if(!selectedIsAction) selIdx=null;
 
-  // 按钮
-  const act=myTurn&&!P.stopped&&!P.bust&&!G.over;
-  document.getElementById('btn-flip').disabled=!act||P.frozen;
-  document.getElementById('btn-stop').disabled=!act||P.frozen||(P.hand||[]).filter(c=>c.t==='n').length===0;
-  document.getElementById('btn-action').disabled=!act||selIdx===null;
+  // 判断手里有没有功能牌
+  const hasActionCard = (P.hand||[]).some(c=>c.t==='a');
+
+  // 按钮：抽牌和停止只在没有功能牌时可用（有功能牌必须先选择打出或跳过）
+  const act = myTurn&&!P.stopped&&!P.bust&&!G.over;
+  const hasJustDrawnAction = act && hasActionCard && (P.hand||[]).filter(c=>c.t==='n').length < (G.discard||[]).filter(c=>c.t==='n').length;
+  // 简化：有功能牌时显示出牌/跳过，没有时显示抽牌/停止
+  const canFlipNow = act && !hasActionCard;
+  const canStopNow = act && !hasActionCard && (P.hand||[]).filter(c=>c.t==='n').length>0;
+  const canActionNow = act && selIdx!==null;
+  const canSkipNow = act && hasActionCard;
+
+  document.getElementById('btn-flip').disabled = !canFlipNow || P.frozen;
+  document.getElementById('btn-stop').disabled = !canStopNow || P.frozen;
+  document.getElementById('btn-action').disabled = !canActionNow;
+  document.getElementById('btn-skip').disabled = !canSkipNow;
   document.getElementById('btn-next').style.display=(G.over&&myRole==='host')?'':'none';
 
   // 消息
