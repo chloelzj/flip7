@@ -464,7 +464,7 @@ function applyMove(G, type, role, idx){
         : P.name+' 抽到 '+card.v+'，继续还是停止？';
       G.mc='';
     }
-    G.turn=opp;
+    // 抽牌后不换人，同一玩家可以继续抽或停止
   }
   else if(type==='stop'){
     if(P.stopped||P.bust||G.over) return;
