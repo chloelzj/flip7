@@ -581,17 +581,21 @@ function renderGame(G){
     if(c.t==='a'&&myTurn&&!P.stopped&&!P.bust&&!G.over){
       el.classList.add('clickable');
       if(selIdx===i) el.classList.add('sel');
-      el.onclick=()=>{selIdx=(selIdx===i)?null:i;renderGame(G);};
+      el.onclick=()=>{selIdx=(selIdx===i)?null:i; renderGame(G);};
     }
     mh.appendChild(el);
   });
   document.getElementById('my-sum').textContent=nsum(P.hand||[]);
 
+  // 检查selIdx对应的牌是否还是功能牌（防止索引失效）
+  const selectedIsAction = selIdx!==null && (P.hand||[])[selIdx] && (P.hand||[])[selIdx].t==='a';
+  if(!selectedIsAction) selIdx=null;
+
   // 按钮
   const act=myTurn&&!P.stopped&&!P.bust&&!G.over;
   document.getElementById('btn-flip').disabled=!act||P.frozen;
   document.getElementById('btn-stop').disabled=!act||P.frozen||(P.hand||[]).filter(c=>c.t==='n').length===0;
-  document.getElementById('btn-action').disabled=!act||(selIdx===null)||(P.hand||[])[selIdx]?.t!=='a';
+  document.getElementById('btn-action').disabled=!act||selIdx===null;
   document.getElementById('btn-next').style.display=(G.over&&myRole==='host')?'':'none';
 
   // 消息
