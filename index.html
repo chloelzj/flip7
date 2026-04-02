@@ -351,7 +351,7 @@ function ensureMoveListener(){
     // 读取最新游戏状态再执行
     db.ref('rooms/'+roomCode+'/game').once('value').then(gs=>{
       if(!gs.exists()) return;
-      applyMove(gs.val(), move.type, 'guest', move.idx);
+      applyMove(gs.val(), move.type, 'guest', move.idx, move.target||'self');
     });
   });
 }
@@ -385,13 +385,45 @@ function doAction(){
   const G = getLocalGame(); if(!G) return;
   if(!isMyTurn(G) || G[myRole].stopped || G[myRole].bust || G.over) return;
   if(selIdx===null) return;
-  const idx = selIdx; selIdx=null;
+  const idx = selIdx;
+  const opp = myRole==='host'?'guest':'host';
+  const oppData = G[opp];
+  // 如果对方已停止或爆牌，直接作用自己
+  if(oppData.stopped || oppData.bust){
+    selIdx=null;
+    executeActionWithTarget(idx,'self');
+  } else {
+    // 弹出选择目标
+    showTargetPicker(idx, G[opp].name);
+  }
+}
+
+function showTargetPicker(idx, oppName){
+  const overlay = document.createElement('div');
+  overlay.id = 'target-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(61,44,78,.7);display:flex;align-items:center;justify-content:center;z-index:200;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:24px;padding:2rem;max-width:320px;width:90%;text-align:center;border:3px solid #F0D6E8;box-shadow:0 20px 60px rgba(61,44,78,.3);">
+      <div style="font-size:2rem;margin-bottom:.5rem;">🎯</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#3D2C4E;margin-bottom:.3rem;">作用在谁身上？</div>
+      <div style="font-size:13px;color:#A898B8;font-weight:600;margin-bottom:1.2rem;">选择功能牌的目标</div>
+      <button id="tgt-self" style="width:100%;margin-bottom:8px;border:none;border-radius:14px;padding:13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#FF8FAB,#E05C80);color:#fff;box-shadow:0 4px 14px rgba(224,92,128,.3);">😺 作用在自己身上</button>
+      <button id="tgt-opp" style="width:100%;margin-bottom:8px;border:2px solid #F0D6E8;border-radius:14px;padding:13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;background:#fff;color:#3D2C4E;">🐱 作用在 ${oppName} 身上</button>
+      <button id="tgt-cancel" style="width:100%;border:2px solid #F0D6E8;border-radius:14px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#A898B8;">取消</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('tgt-self').onclick=()=>{overlay.remove();selIdx=null;executeActionWithTarget(idx,'self');};
+  document.getElementById('tgt-opp').onclick=()=>{overlay.remove();selIdx=null;executeActionWithTarget(idx,'opp');};
+  document.getElementById('tgt-cancel').onclick=()=>{overlay.remove();};
+}
+
+function executeActionWithTarget(idx, target){
   if(myRole==='host'){
     db.ref('rooms/'+roomCode+'/game').once('value').then(snap=>{
-      applyMove(snap.val(),'action','host',idx);
+      applyMove(snap.val(),'action','host',idx,target);
     });
   } else {
-    db.ref('rooms/'+roomCode+'/move').set({type:'action',idx:idx,ready:true});
+    db.ref('rooms/'+roomCode+'/move').set({type:'action',idx:idx,target:target,ready:true});
   }
 }
 
@@ -427,7 +459,7 @@ function fixArrays(G){
   return G;
 }
 
-function applyMove(G, type, role, idx){
+function applyMove(G, type, role, idx, target='self'){
   if(!G) return;
   G = JSON.parse(JSON.stringify(G));
   G = fixArrays(G);
@@ -477,38 +509,45 @@ function applyMove(G, type, role, idx){
     if(P.stopped||P.bust||G.over) return;
     const card=P.hand[idx];
     if(!card||card.t!=='a') return;
+    // target: 'self' 或 'opp'，对方已停止则强制自己
+    const tgt = (target==='opp' && !O.stopped && !O.bust) ? 'opp' : 'self';
+    const T = tgt==='self' ? P : O; // 目标玩家
+    const tName = tgt==='self' ? P.name : O.name;
     P.hand.splice(idx,1);
     G.discard.push(card);
     if(card.v==='🧊冻结'){
-      O.frozen=true; G.msg='🧊 '+P.name+' 冻结了 '+O.name+'！'; G.mc='info';
+      if(tgt==='self'){ P.frozen=true; G.msg='🧊 冻结了自己！（下回合跳过）'; G.mc='info'; }
+      else { O.frozen=true; G.msg='🧊 '+P.name+' 冻结了 '+O.name+'！'; G.mc='info'; }
     } else if(card.v==='🍀第二次机会'){
-      P.sc=true; G.msg='🍀 '+P.name+' 激活第二次机会！'; G.mc='good';
+      T.sc=true; G.msg='🍀 第二次机会给了 '+tName+'！'; G.mc='good';
     } else if(card.v==='🃏翻3张'){
+      // 给目标抽3张
       let drawn=[];
       for(let i=0;i<3;i++){
         if(!G.deck.length) G.deck=shuffle(G.discard.splice(0));
         const dc=G.deck.pop(); G.discard.push(dc);
-        if(dc.t==='n'&&hasDup(P.hand,dc)){
-          if(P.sc){P.sc=false;drawn.push(dc.v+'(豁免)');}
-          else{P.bust=true;drawn.push(dc.v+'(爆！)');break;}
+        if(dc.t==='n'&&hasDup(T.hand,dc)){
+          if(T.sc){T.sc=false;drawn.push(dc.v+'(豁免)');}
+          else{T.bust=true;drawn.push(dc.v+'(爆！)');break;}
         } else {
-          P.hand.push(dc); drawn.push(dc.t==='n'?String(dc.v):dc.v);
-          if(isF7(P.hand)){G.msg='翻3张：'+drawn.join('、')+'—Flip7！';G.mc='good';saveGame(G,true);return;}
+          T.hand.push(dc); drawn.push(dc.t==='n'?String(dc.v):dc.v);
+          if(isF7(T.hand)){G.msg='翻3张给'+tName+'：'+drawn.join('、')+'—Flip7！';G.mc=tgt==='self'?'good':'bad';saveGame(G,true);return;}
         }
       }
-      G.msg='🃏 翻3张：'+drawn.join('、'); G.mc=P.bust?'bad':'';
-      if(P.bust){saveGame(G,true);return;}
+      G.msg='🃏 翻3张给'+tName+'：'+drawn.join('、'); G.mc=T.bust?'bad':'';
+      if(T.bust){saveGame(G,true);return;}
     } else if(card.v==='📤分3张'){
+      // 从自己手里拿3张给目标
       let nums=P.hand.filter(c=>c.t==='n').slice(0,3);
       P.hand=P.hand.filter(c=>!nums.includes(c));
       let given=[];
       for(let nc of nums){
-        if(hasDup(O.hand,nc)){G.discard.push(nc);given.push(nc.v+'(弃)');}
-        else{O.hand.push(nc);given.push(nc.v);if(isF7(O.hand)){G.msg='分3张让对方Flip 7！';G.mc='bad';saveGame(G,true);return;}}
+        if(hasDup(T.hand,nc)){G.discard.push(nc);given.push(nc.v+'(弃)');}
+        else{T.hand.push(nc);given.push(nc.v);if(isF7(T.hand)){G.msg='分3张给'+tName+'后Flip 7！';G.mc=tgt==='self'?'good':'bad';saveGame(G,true);return;}}
       }
-      G.msg='📤 分3张给对方：'+given.join('、'); G.mc='info';
+      G.msg='📤 分3张给'+tName+'：'+given.join('、'); G.mc='info';
+      G.turn=opp;
     }
-    G.turn=opp;
   }
 
   const allDone=(G.host.stopped||G.host.bust||isF7(G.host.hand))
