@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flip 7 🐱</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--pink:#FF8FAB;--pink-deep:#E05C80;--cream:#FFF5F8;--purple:#8B6FD4;--yellow:#F5A623;--green:#3DAA73;--ink:#3D2C4E;--muted:#A898B8;--border:#F0D6E8;--white:#FFFFFF;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--cream);color:var(--ink);font-family:'Nunito',sans-serif;min-height:100vh;background-image:radial-gradient(circle at 10% 10%,rgba(255,143,171,.3) 0%,transparent 40%),radial-gradient(circle at 90% 90%,rgba(139,111,212,.25) 0%,transparent 40%);}
+#lobby{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;}
+.logo{font-size:clamp(2.5rem,9vw,4.5rem);font-weight:900;color:var(--pink-deep);margin-bottom:.3rem;}
+.logo span{color:var(--purple);}
+.tagline{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:2rem;}
+.lcard{background:var(--white);border:2px solid var(--border);border-radius:24px;padding:2rem;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(200,100,140,.12);}
+.lcard h2{font-size:1.2rem;font-weight:900;margin-bottom:1rem;}
+input[type=text]{width:100%;background:var(--cream);border:2px solid var(--border);border-radius:12px;padding:11px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--ink);outline:none;transition:border-color .2s;margin-bottom:10px;display:block;}
+input[type=text]:focus{border-color:var(--pink);}
+input[type=text]::placeholder{color:var(--muted);font-weight:400;}
+.btn{width:100%;border:none;border-radius:14px;padding:13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;display:block;margin-bottom:8px;transition:opacity .15s,transform .1s;}
+.btn:active{transform:scale(.97);}
+.btn-pink{background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#fff;box-shadow:0 4px 16px rgba(224,92,128,.35);}
+.btn-pink:hover{opacity:.9;}
+.btn-out{background:var(--white);border:2px solid var(--border);color:var(--ink);}
+.btn-out:hover{border-color:var(--pink);}
+.divrow{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;font-weight:700;margin:1rem 0;}
+.divrow::before,.divrow::after{content:'';flex:1;height:2px;background:var(--border);border-radius:99px;}
+.codebox{background:linear-gradient(135deg,var(--purple),var(--pink-deep));color:#fff;border-radius:16px;padding:18px;text-align:center;margin-bottom:12px;}
+.codebox .lbl{font-size:11px;color:rgba(255,255,255,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;font-weight:700;}
+.codebig{font-size:2.8rem;font-weight:900;letter-spacing:8px;}
+.stxt{font-size:13px;color:var(--muted);text-align:center;margin-bottom:1rem;font-weight:700;}
+.err{color:var(--pink-deep);font-size:13px;margin-top:8px;min-height:18px;font-weight:700;}
+.rules{background:var(--cream);border:2px solid var(--border);border-radius:16px;padding:1rem 1.2rem;margin-top:1rem;font-size:12px;line-height:2;color:var(--muted);font-weight:600;}
+.rules b{color:var(--ink);}
+#game{display:none;flex-direction:column;min-height:100vh;padding:1rem;max-width:900px;margin:0 auto;}
+.gh{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:1rem;border-bottom:2px solid var(--border);}
+.glogo{font-size:1.3rem;font-weight:900;color:var(--pink-deep);}
+.glogo span{color:var(--purple);}
+.rpill{background:linear-gradient(135deg,var(--purple),var(--pink-deep));color:#fff;border-radius:99px;padding:5px 16px;font-size:12px;font-weight:800;}
+.ldot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sbar{display:flex;gap:3px;background:var(--border);border-radius:18px;padding:3px;margin-bottom:10px;}
+.stab{flex:1;background:var(--white);border-radius:15px;padding:10px 14px;text-align:center;transition:all .3s;}
+.stab.active{background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#fff;}
+.stab.active .slbl{color:rgba(255,255,255,.75);}
+.slbl{font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;font-weight:700;}
+.snum{font-size:1.8rem;font-weight:900;}
+.prog{height:6px;background:var(--border);border-radius:99px;margin-bottom:1rem;overflow:hidden;}
+.progbar{height:100%;background:linear-gradient(90deg,var(--pink),var(--purple));border-radius:99px;transition:width .6s;}
+.area{background:var(--white);border:2px solid var(--border);border-radius:20px;padding:14px;margin-bottom:10px;}
+.area.mine{border-color:var(--pink);}
+.ah{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.aname{font-size:14px;font-weight:900;}
+.asum{font-size:1.1rem;font-weight:900;color:var(--pink-deep);}
+.slabel{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:700;}
+.hrow{display:flex;flex-wrap:wrap;gap:7px;min-height:90px;align-items:flex-start;}
+.pill{font-size:11px;padding:4px 12px;border-radius:99px;font-weight:800;}
+.pw{background:#FFF0F5;color:var(--pink-deep);border:2px solid var(--pink);}
+.ps{background:#F0FFF8;color:var(--green);border:2px solid #A8E6CF;}
+.pt{background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#fff;}
+.pf{background:linear-gradient(135deg,#FFE08A,var(--yellow));color:#fff;}
+.card{width:62px;height:90px;border-radius:14px;border:2px solid var(--border);background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;flex-shrink:0;box-shadow:0 3px 10px rgba(200,100,140,.1);transition:transform .15s,box-shadow .15s;}
+.card.fd{background:linear-gradient(135deg,var(--purple),var(--pink-deep));border-color:transparent;color:#fff;cursor:pointer;}
+.card.fd:hover{transform:translateY(-4px) rotate(-3deg);}
+.card.ac{font-size:8px;font-weight:800;color:var(--purple);background:linear-gradient(135deg,#EEF4FF,#F5F0FF);border-color:#C9B8FF;text-align:center;padding:5px 3px;line-height:1.5;}
+.card.n0{background:linear-gradient(135deg,#F8F0FF,#EDE0FF);color:#7C4DCC;border-color:#C9B8FF;}
+.card.n1{background:linear-gradient(135deg,#FFF0F5,#FFE0EC);color:#E05C80;border-color:#FFB7C5;}
+.card.n2{background:linear-gradient(135deg,#FFF5E0,#FFE8B0);color:#D4820A;border-color:#FFE08A;}
+.card.n3{background:linear-gradient(135deg,#E8FFF0,#C8FFE0);color:#2E9E60;border-color:#A8E6CF;}
+.card.n4{background:linear-gradient(135deg,#E0F0FF,#C8E4FF);color:#1A6FBB;border-color:#B8D8FF;}
+.card.n5{background:linear-gradient(135deg,#FFE8F0,#FFD0E4);color:#C0305A;border-color:#FF8FAB;}
+.card.n6{background:linear-gradient(135deg,#F0F8FF,#DCF0FF);color:#1558A0;border-color:#90C4F0;}
+.card.n7{background:linear-gradient(135deg,#F5FFE8,#E4FFC8);color:#288040;border-color:#90D890;}
+.card.n8{background:linear-gradient(135deg,#FFF8E0,#FFEEBB);color:#B07010;border-color:#FFD060;}
+.card.n9{background:linear-gradient(135deg,#FFF0F8,#FFD8EC);color:#B03070;border-color:#FF90C0;}
+.card.n10{background:linear-gradient(135deg,#F0ECFF,#E0D8FF);color:#6040CC;border-color:#B0A0FF;}
+.card.n11{background:linear-gradient(135deg,#E8FFF8,#C0FFE8);color:#108060;border-color:#70D0B0;}
+.card.n12{background:linear-gradient(135deg,#FFF4E8,#FFE4C0);color:#A05010;border-color:#FFB870;}
+.card.n13{background:linear-gradient(135deg,#FFE8E8,#FFC8C8);color:#B02020;border-color:#FF9090;}
+.card.n14{background:linear-gradient(135deg,#E8E8FF,#C8C8FF);color:#3030B0;border-color:#9090FF;}
+.card.n15{background:linear-gradient(135deg,#E8FFE8,#C8FFC8);color:#208020;border-color:#90D090;}
+.card .ccat{font-size:16px;line-height:1;margin-bottom:2px;}
+.card .cnum{font-size:1.3rem;font-weight:900;line-height:1;}
+.card.clickable{cursor:pointer;}
+.card.clickable:hover{transform:translateY(-8px) scale(1.04);box-shadow:0 12px 24px rgba(200,100,140,.2);}
+.card.sel{transform:translateY(-12px) scale(1.05);border-color:var(--yellow)!important;border-width:3px;box-shadow:0 0 0 3px #FFE08A,0 14px 28px rgba(200,100,140,.25);}
+.brow{display:flex;gap:1rem;margin-bottom:10px;align-items:flex-start;}
+.pile{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.plbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;}
+.pcnt{font-size:11px;color:var(--muted);font-weight:700;background:var(--cream);border-radius:99px;padding:2px 10px;border:1.5px solid var(--border);}
+.msg{background:var(--white);border:2px solid var(--border);border-radius:16px;padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px;min-height:46px;display:flex;align-items:center;flex:1;}
+.msg.good{background:#F0FFF8;border-color:#A8E6CF;color:var(--green);}
+.msg.bad{background:#FFF0F5;border-color:var(--pink);color:var(--pink-deep);}
+.msg.info{background:#F5F0FF;border-color:#C9B8FF;color:var(--purple);}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.cbtn{flex:1;min-width:110px;border:2px solid var(--border);border-radius:14px;padding:11px 16px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;background:var(--white);color:var(--ink);transition:all .15s;}
+.cbtn:hover:not(:disabled){background:var(--cream);border-color:var(--pink);color:var(--pink-deep);}
+.cbtn:disabled{opacity:.35;cursor:default;}
+.cbtn.primary{background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(224,92,128,.3);}
+.cbtn.primary:hover:not(:disabled){opacity:.9;color:#fff;border-color:transparent;}
+.cbtn.purp{background:linear-gradient(135deg,#C9B8FF,var(--purple));color:#fff;border-color:transparent;}
+.cbtn.purp:hover:not(:disabled){opacity:.9;color:#fff;border-color:transparent;}
+.eov{display:none;position:fixed;inset:0;background:rgba(61,44,78,.72);align-items:center;justify-content:center;z-index:99;}
+.ecard{background:var(--white);border-radius:28px;padding:2.5rem;max-width:360px;width:90%;text-align:center;box-shadow:0 24px 64px rgba(61,44,78,.3);border:3px solid var(--border);}
+.eemoji{font-size:4rem;margin-bottom:.8rem;}
+.etitle{font-size:2.2rem;font-weight:900;margin-bottom:.4rem;color:var(--pink-deep);}
+.esub{color:var(--muted);font-size:13px;margin-bottom:1.5rem;font-weight:600;}
+.catcorner{position:fixed;bottom:16px;right:16px;font-size:2rem;opacity:.2;pointer-events:none;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media(max-width:480px){.card{width:52px;height:76px;}.card .ccat{font-size:13px;}.card .cnum{font-size:1.05rem;}.card.ac{font-size:7px;}}
+</style>
+</head>
+<body>
+<div class="catcorner">🐱</div>
+<div id="lobby">
+  <div style="font-size:4rem;margin-bottom:.5rem;">🐱</div>
+  <div class="logo">FLIP <span>7</span> 🐾</div>
+  <p class="tagline">两人对战 · 猫咪主题 · 跨国联机</p>
+  <div class="lcard" id="lc-main">
+    <h2>😺 输入你的名字</h2>
+    <input type="text" id="my-name" placeholder="你叫什么喵？" maxlength="12" autocomplete="off">
+    <button class="btn btn-pink" id="btn-create">🏠 创建房间</button>
+    <div class="divrow">或者</div>
+    <input type="text" id="join-code" placeholder="输入6位房间码..." maxlength="6" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px;text-align:center;">
+    <button class="btn btn-out" id="btn-join">🚪 加入房间</button>
+    <div class="err" id="lerr"></div>
+    <details style="margin-top:1.2rem;">
+      <summary style="cursor:pointer;font-size:12px;color:var(--muted);list-style:none;font-weight:700;">游戏规则 ▾</summary>
+      <div class="rules"><b>目标：</b>集齐7张不重复数字牌（0-15）= Flip 7！<br><b>💥爆牌：</b>重复数字→本局0分。<br><b>🛑停止：</b>锁定当前总和。<br><b>🎉Flip 7：</b>集齐7张不重复→赢局+15分。<br><b>功能牌：</b>🧊冻结/🃏翻3张/🍀第二次机会/📤分3张<br><b>胜利：</b>先到<b>200分</b>赢！</div>
+    </details>
+  </div>
+  <div class="lcard" id="lc-wait" style="display:none;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:.8rem;">🐱💌🐱</div>
+    <div class="codebox"><div class="lbl">把房间码发给对方喵～</div><div class="codebig" id="show-code">——</div></div>
+    <p class="stxt" id="wait-msg">等待对方加入...</p>
+    <button class="btn btn-out" id="btn-copy">📋 复制房间码</button>
+    <button class="btn btn-out" style="margin-top:8px;font-size:12px;" id="btn-back">← 返回</button>
+  </div>
+</div>
+<div id="game">
+  <div class="gh">
+    <div class="glogo">FLIP <span>7</span> 🐾</div>
+    <div class="rpill">第 <span id="g-round">1</span> 局</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;"><span class="ldot"></span>已连接</div>
+  </div>
+  <div class="sbar">
+    <div class="stab" id="tab-me"><div class="slbl" id="tme-name">我</div><div class="snum" id="tme-score">0</div></div>
+    <div class="stab" id="tab-opp"><div class="slbl" id="topp-name">对方</div><div class="snum" id="topp-score">0</div></div>
+  </div>
+  <div class="prog"><div class="progbar" id="progbar" style="width:0%"></div></div>
+  <div class="area">
+    <div class="ah"><div class="aname">🐱 <span id="opp-name-lbl">对方</span></div><div class="pill pw" id="opp-pill">等待中</div></div>
+    <div class="slabel">对方手牌（<span id="opp-cnt">0</span>张）</div>
+    <div class="hrow" id="opp-hand"></div>
+  </div>
+  <div class="brow">
+    <div class="pile">
+      <div class="plbl">牌堆</div>
+      <div class="card fd" id="deck-btn">🐾</div>
+      <div class="pcnt" id="deck-cnt">?张</div>
+    </div>
+    <div class="pile">
+      <div class="plbl">弃牌堆</div>
+      <div id="discard-top"><div class="card fd" style="opacity:.25;">🐾</div></div>
+    </div>
+    <div id="msgbar" class="msg">🐱 准备中...</div>
+  </div>
+  <div class="area mine">
+    <div class="ah"><div class="aname">🐾 <span id="my-name-lbl">我</span></div><div><span style="font-size:11px;color:var(--muted);font-weight:700;">总和 </span><span class="asum" id="my-sum">0</span></div></div>
+    <div class="slabel">我的手牌 — 点击功能牌选中，再按"出功能牌"</div>
+    <div class="hrow" id="my-hand"></div>
+  </div>
+  <div class="ctrls">
+    <button class="cbtn primary" id="btn-flip">🃏 抽牌</button>
+    <button class="cbtn" id="btn-stop">🛑 停止锁分</button>
+    <button class="cbtn purp" id="btn-action">✨ 出功能牌</button>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="cbtn primary" id="btn-next" style="display:none;">下一局 →</button>
+    <button class="cbtn" id="btn-leave" style="flex:0;min-width:auto;padding:10px 14px;">退出</button>
+  </div>
+</div>
+<div class="eov" id="eov">
+  <div class="ecard">
+    <div class="eemoji" id="eemoji">🎉</div>
+    <div class="etitle" id="etitle">你赢了！</div>
+    <div class="esub" id="esub"></div>
+    <button class="btn btn-pink" id="btn-again">再来一局 🐾</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyAjC4Rb4vaKrQIXZ0gurqggmEBxZRW6O0I",
+  authDomain:"flip-7-with-me.firebaseapp.com",
+  databaseURL:"https://flip-7-with-me-default-rtdb.firebaseio.com",
+  projectId:"flip-7-with-me",
+  storageBucket:"flip-7-with-me.firebasestorage.app",
+  messagingSenderId:"147017858755",
+  appId:"1:147017858755:web:3974f950f7bce5db7bec76"
+});
+const db = firebase.database();
+
+const ACTIONS = ['🧊冻结','🃏翻3张','🍀第二次机会','📤分3张'];
+const WIN = 200;
+const CAT = ['😺','😸','😹','😻','😼','😽','🙀','😿','😾','🐱','🐈','🐾','🌸','🎀','🍭','⭐'];
+
+// ── 全局变量 ──
+let myRole = null;      // 'host' | 'guest'
+let roomCode = null;
+let myNameVal = '';
+let selIdx = null;
+
+// ── 绑定按钮 ──
+document.getElementById('btn-create').onclick = createRoom;
+document.getElementById('btn-join').onclick = joinRoom;
+document.getElementById('btn-copy').onclick = copyCode;
+document.getElementById('btn-back').onclick = ()=>location.reload();
+document.getElementById('btn-leave').onclick = ()=>location.reload();
+document.getElementById('btn-again').onclick = ()=>location.reload();
+document.getElementById('btn-flip').onclick = doFlip;
+document.getElementById('btn-stop').onclick = doStop;
+document.getElementById('btn-action').onclick = doAction;
+document.getElementById('btn-next').onclick = doNextRound;
+document.getElementById('deck-btn').onclick = doFlip;
+
+// ── 牌组 ──
+function buildDeck(){
+  let d=[];
+  for(let n=0;n<=15;n++){d.push({t:'n',v:n});d.push({t:'n',v:n});}
+  for(let a of ACTIONS){d.push({t:'a',v:a});d.push({t:'a',v:a});}
+  return shuffle(d);
+}
+function shuffle(a){
+  let r=[...a];
+  for(let i=r.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}
+  return r;
+}
+function nsum(h){return(h||[]).filter(c=>c.t==='n').reduce((s,c)=>s+c.v,0);}
+function hasDup(h,card){
+  if(card.t!=='n')return false;
+  return(h||[]).some(c=>c.t==='n'&&c.v===card.v);
+}
+function isF7(h){
+  let ns=(h||[]).filter(c=>c.t==='n');
+  return ns.length===7&&new Set(ns.map(c=>c.v)).size===7;
+}
+function genCode(){
+  return Array.from({length:6},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+}
+
+// ── 创建房间 ──
+async function createRoom(){
+  myNameVal=document.getElementById('my-name').value.trim();
+  if(!myNameVal){showErr('请输入名字！');return;}
+  myRole='host';
+  roomCode=genCode();
+  await db.ref('rooms/'+roomCode).set({
+    host:{name:myNameVal,score:0},
+    guest:null,
+    status:'waiting',
+    game:null
+  });
+  document.getElementById('show-code').textContent=roomCode;
+  document.getElementById('lc-main').style.display='none';
+  document.getElementById('lc-wait').style.display='block';
+  listenRoom();
+}
+
+// ── 加入房间 ──
+async function joinRoom(){
+  myNameVal=document.getElementById('my-name').value.trim();
+  const code=document.getElementById('join-code').value.trim().toUpperCase();
+  if(!myNameVal){showErr('请输入名字！');return;}
+  if(code.length!==6){showErr('请输入6位房间码！');return;}
+  const snap=await db.ref('rooms/'+code).once('value');
+  if(!snap.exists()){showErr('找不到房间！');return;}
+  const room=snap.val();
+  if(room.status!=='waiting'){showErr('游戏已开始。');return;}
+  if(room.guest){showErr('房间已满！');return;}
+  myRole='guest';
+  roomCode=code;
+  await db.ref('rooms/'+code+'/guest').set({name:myNameVal,score:0});
+  document.getElementById('show-code').textContent=code;
+  document.getElementById('lc-main').style.display='none';
+  document.getElementById('lc-wait').style.display='block';
+  document.getElementById('wait-msg').textContent='已加入！等待游戏开始...';
+  listenRoom();
+}
+
+// ── 监听房间 ──
+// 用一个标志避免 host 重复开始游戏
+let gameStarted = false;
+
+function listenRoom(){
+  db.ref('rooms/'+roomCode).on('value', snap=>{
+    if(!snap.exists()) return;
+    const room = snap.val();
+
+    // host：看到 guest 加入，且游戏还没开始 → 开始游戏
+    if(myRole==='host' && room.guest && !gameStarted){
+      gameStarted = true;
+      hostStartGame(room);
+      // 不return，等Firebase写完后下面的监听会更新game
+    }
+
+    // 有游戏数据 → 显示游戏界面并渲染
+    if(room.game){
+      document.getElementById('lobby').style.display='none';
+      document.getElementById('game').style.display='flex';
+      renderGame(room.game);
+    }
+  });
+}
+
+// ── 开始新游戏 ──
+function hostStartGame(room){
+  const G = makeGame(1, room.host.name, room.guest.name, 0, 0);
+  db.ref('rooms/'+roomCode+'/game').set(G);
+  db.ref('rooms/'+roomCode+'/status').set('playing');
+}
+
+function makeGame(round, hName, gName, hScore, gScore){
+  return {
+    deck:buildDeck(), discard:[],
+    round, turn:'host', over:false,
+    msg:'第'+round+'局开始！主机先手。', mc:'',
+    host:{name:hName,score:hScore,hand:[],stopped:false,bust:false,frozen:false,sc:false},
+    guest:{name:gName,score:gScore,hand:[],stopped:false,bust:false,frozen:false,sc:false}
+  };
+}
+
+// ── 玩家操作 ──
+// 关键设计：所有操作都由 HOST 来执行和写入Firebase
+// Guest 把意图写到 Firebase 的 /move 节点，Host 监听并执行
+
+// Host 监听 guest 的移动请求
+let moveListening = false;
+function ensureMoveListener(){
+  if(moveListening) return;
+  moveListening = true;
+  db.ref('rooms/'+roomCode+'/move').on('value', snap=>{
+    if(!snap.exists()) return;
+    const move = snap.val();
+    if(!move || !move.ready) return;
+    // 清除标志，防止重复执行
+    db.ref('rooms/'+roomCode+'/move/ready').set(false);
+    // 读取最新游戏状态再执行
+    db.ref('rooms/'+roomCode+'/game').once('value').then(gs=>{
+      if(!gs.exists()) return;
+      applyMove(gs.val(), move.type, 'guest', move.idx);
+    });
+  });
+}
+
+function doFlip(){
+  const G = getLocalGame(); if(!G) return;
+  if(!isMyTurn(G) || G[myRole].stopped || G[myRole].bust || G.over) return;
+  if(myRole==='host'){
+    db.ref('rooms/'+roomCode+'/game').once('value').then(snap=>{
+      applyMove(snap.val(),'flip','host');
+    });
+  } else {
+    db.ref('rooms/'+roomCode+'/move').set({type:'flip',idx:null,ready:true});
+  }
+}
+
+function doStop(){
+  const G = getLocalGame(); if(!G) return;
+  if(!isMyTurn(G) || G[myRole].stopped || G[myRole].bust || G.over) return;
+  if((G[myRole].hand||[]).filter(c=>c.t==='n').length===0) return;
+  if(myRole==='host'){
+    db.ref('rooms/'+roomCode+'/game').once('value').then(snap=>{
+      applyMove(snap.val(),'stop','host');
+    });
+  } else {
+    db.ref('rooms/'+roomCode+'/move').set({type:'stop',idx:null,ready:true});
+  }
+}
+
+function doAction(){
+  const G = getLocalGame(); if(!G) return;
+  if(!isMyTurn(G) || G[myRole].stopped || G[myRole].bust || G.over) return;
+  if(selIdx===null) return;
+  const idx = selIdx; selIdx=null;
+  if(myRole==='host'){
+    db.ref('rooms/'+roomCode+'/game').once('value').then(snap=>{
+      applyMove(snap.val(),'action','host',idx);
+    });
+  } else {
+    db.ref('rooms/'+roomCode+'/move').set({type:'action',idx:idx,ready:true});
+  }
+}
+
+function doNextRound(){
+  if(myRole!=='host') return;
+  db.ref('rooms/'+roomCode+'/game').once('value').then(snap=>{
+    if(!snap.exists()) return;
+    const G = snap.val();
+    const sc = r=>{const p=G[r];if(p.bust)return 0;return isF7(p.hand)?nsum(p.hand)+15:nsum(p.hand);};
+    const hs = G.host.score + sc('host');
+    const gs = G.guest.score + sc('guest');
+    if(hs>=WIN||gs>=WIN){
+      const fg = JSON.parse(JSON.stringify(G));
+      fg.host.score=hs; fg.guest.score=gs;
+      db.ref('rooms/'+roomCode+'/game').set(fg);
+      db.ref('rooms/'+roomCode+'/status').set('gameover');
+    } else {
+      const ng = makeGame(G.round+1, G.host.name, G.guest.name, hs, gs);
+      db.ref('rooms/'+roomCode+'/game').set(ng);
+      db.ref('rooms/'+roomCode+'/status').set('playing');
+    }
+  });
+}
+
+// ── 核心游戏逻辑（HOST 执行）──
+function applyMove(G, type, role, idx){
+  if(!G) return;
+  G = JSON.parse(JSON.stringify(G)); // 深拷贝
+  const opp = role==='host'?'guest':'host';
+  const P = G[role], O = G[opp];
+
+  if(type==='flip'){
+    if(P.stopped||P.bust||G.over) return;
+    if(P.frozen){
+      P.frozen=false; G.turn=opp;
+      G.msg=P.name+' 被冻结，跳过回合！'; G.mc='bad';
+      saveGame(G); return;
+    }
+    if(!G.deck.length) G.deck=shuffle(G.discard.splice(0));
+    const card=G.deck.pop();
+    G.discard.push(card);
+    if(card.t==='n'&&hasDup(P.hand,card)){
+      if(P.sc){
+        P.sc=false;
+        G.msg=P.name+' 抽到重复'+card.v+'，第二次机会救了！'; G.mc='info';
+      } else {
+        P.bust=true;
+        G.msg='💥 '+P.name+' 抽到重复'+card.v+'，爆牌！'; G.mc='bad';
+        saveGame(G,true); return;
+      }
+    } else {
+      P.hand.push(card);
+      if(isF7(P.hand)){
+        G.msg='🎉 '+P.name+' 集齐 Flip 7！赢得本局！'; G.mc='good';
+        saveGame(G,true); return;
+      }
+      G.msg = card.t==='a'
+        ? P.name+' 抽到功能牌：'+card.v
+        : P.name+' 抽到 '+card.v+'，继续还是停止？';
+      G.mc='';
+    }
+    G.turn=opp;
+  }
+  else if(type==='stop'){
+    if(P.stopped||P.bust||G.over) return;
+    P.stopped=true;
+    G.msg='🛑 '+P.name+' 停止，锁定 '+nsum(P.hand)+' 分。'; G.mc='';
+    if(O.stopped||O.bust||isF7(O.hand)){saveGame(G,true);return;}
+    G.turn=opp;
+  }
+  else if(type==='action'){
+    if(P.stopped||P.bust||G.over) return;
+    const card=P.hand[idx];
+    if(!card||card.t!=='a') return;
+    P.hand.splice(idx,1);
+    G.discard.push(card);
+    if(card.v==='🧊冻结'){
+      O.frozen=true; G.msg='🧊 '+P.name+' 冻结了 '+O.name+'！'; G.mc='info';
+    } else if(card.v==='🍀第二次机会'){
+      P.sc=true; G.msg='🍀 '+P.name+' 激活第二次机会！'; G.mc='good';
+    } else if(card.v==='🃏翻3张'){
+      let drawn=[];
+      for(let i=0;i<3;i++){
+        if(!G.deck.length) G.deck=shuffle(G.discard.splice(0));
+        const dc=G.deck.pop(); G.discard.push(dc);
+        if(dc.t==='n'&&hasDup(P.hand,dc)){
+          if(P.sc){P.sc=false;drawn.push(dc.v+'(豁免)');}
+          else{P.bust=true;drawn.push(dc.v+'(爆！)');break;}
+        } else {
+          P.hand.push(dc); drawn.push(dc.t==='n'?String(dc.v):dc.v);
+          if(isF7(P.hand)){G.msg='翻3张：'+drawn.join('、')+'—Flip7！';G.mc='good';saveGame(G,true);return;}
+        }
+      }
+      G.msg='🃏 翻3张：'+drawn.join('、'); G.mc=P.bust?'bad':'';
+      if(P.bust){saveGame(G,true);return;}
+    } else if(card.v==='📤分3张'){
+      let nums=P.hand.filter(c=>c.t==='n').slice(0,3);
+      P.hand=P.hand.filter(c=>!nums.includes(c));
+      let given=[];
+      for(let nc of nums){
+        if(hasDup(O.hand,nc)){G.discard.push(nc);given.push(nc.v+'(弃)');}
+        else{O.hand.push(nc);given.push(nc.v);if(isF7(O.hand)){G.msg='分3张让对方Flip 7！';G.mc='bad';saveGame(G,true);return;}}
+      }
+      G.msg='📤 分3张给对方：'+given.join('、'); G.mc='info';
+    }
+    G.turn=opp;
+  }
+
+  const allDone=(G.host.stopped||G.host.bust||isF7(G.host.hand))
+             &&(G.guest.stopped||G.guest.bust||isF7(G.guest.hand));
+  saveGame(G, allDone);
+}
+
+function saveGame(G, over=false){
+  G.over=over;
+  db.ref('rooms/'+roomCode+'/game').set(G);
+}
+
+// ── 渲染 ──
+// 保存最近一次渲染的game，用于按钮判断
+let _G = null;
+
+function getLocalGame(){ return _G; }
+function isMyTurn(G){ return G && G.turn===myRole; }
+
+function renderGame(G){
+  if(!G) return;
+  _G = G;
+
+  // 如果是 host，确保监听 guest 的移动
+  if(myRole==='host') ensureMoveListener();
+
+  const me=myRole, opp=me==='host'?'guest':'host';
+  const P=G[me], O=G[opp];
+  const myTurn=G.turn===me;
+
+  document.getElementById('g-round').textContent=G.round;
+  document.getElementById('tme-name').textContent=P.name||'我';
+  document.getElementById('topp-name').textContent=O.name||'对方';
+  document.getElementById('tme-score').textContent=P.score;
+  document.getElementById('topp-score').textContent=O.score;
+  document.getElementById('my-name-lbl').textContent=P.name||'我';
+  document.getElementById('opp-name-lbl').textContent=O.name||'对方';
+  document.getElementById('tab-me').classList.toggle('active',myTurn);
+  document.getElementById('tab-opp').classList.toggle('active',!myTurn);
+  document.getElementById('progbar').style.width=Math.min(100,Math.max(P.score,O.score)/WIN*100)+'%';
+  document.getElementById('deck-cnt').textContent=(G.deck||[]).length+'张';
+
+  // 弃牌堆
+  const dt=document.getElementById('discard-top');
+  dt.innerHTML='';
+  const disc=G.discard||[];
+  if(disc.length) dt.appendChild(mkCard(disc[disc.length-1]));
+  else dt.innerHTML='<div class="card fd" style="opacity:.25;">🐾</div>';
+
+  // 对方手牌
+  const oh=document.getElementById('opp-hand');
+  oh.innerHTML='';
+  (O.hand||[]).forEach(c=>oh.appendChild(G.over?mkCard(c):mkFD()));
+  document.getElementById('opp-cnt').textContent=(O.hand||[]).length;
+
+  // 对方状态
+  const pill=document.getElementById('opp-pill');
+  pill.className='pill';
+  if(O.bust){pill.classList.add('pb');pill.textContent='💥爆牌！';}
+  else if(isF7(O.hand||[])){pill.classList.add('pf');pill.textContent='🎉Flip 7！';}
+  else if(O.stopped){pill.classList.add('ps');pill.textContent='🛑已停止';}
+  else if(!myTurn){pill.classList.add('pt');pill.textContent='Ta的回合';}
+  else{pill.classList.add('pw');pill.textContent='等待中';}
+
+  // 我的手牌
+  const mh=document.getElementById('my-hand');
+  mh.innerHTML='';
+  (P.hand||[]).forEach((c,i)=>{
+    const el=mkCard(c);
+    if(c.t==='a'&&myTurn&&!P.stopped&&!P.bust&&!G.over){
+      el.classList.add('clickable');
+      if(selIdx===i) el.classList.add('sel');
+      el.onclick=()=>{selIdx=(selIdx===i)?null:i;renderGame(G);};
+    }
+    mh.appendChild(el);
+  });
+  document.getElementById('my-sum').textContent=nsum(P.hand||[]);
+
+  // 按钮
+  const act=myTurn&&!P.stopped&&!P.bust&&!G.over;
+  document.getElementById('btn-flip').disabled=!act||P.frozen;
+  document.getElementById('btn-stop').disabled=!act||P.frozen||(P.hand||[]).filter(c=>c.t==='n').length===0;
+  document.getElementById('btn-action').disabled=!act||(selIdx===null)||(P.hand||[])[selIdx]?.t!=='a';
+  document.getElementById('btn-next').style.display=(G.over&&myRole==='host')?'':'none';
+
+  // 消息
+  let txt=G.msg||'';
+  if(G.over&&myRole==='guest') txt+='  等待对方开始下一局...';
+  setMsg(txt,G.mc||'');
+
+  // 游戏结束
+  if(G.host.score>=WIN||G.guest.score>=WIN) showEnd(G);
+}
+
+function mkCard(c){
+  const el=document.createElement('div');
+  el.className='card';
+  if(c.t==='a'){el.classList.add('ac');el.textContent=c.v;}
+  else{
+    el.classList.add('n'+c.v);
+    const cat=document.createElement('div');cat.className='ccat';cat.textContent=CAT[c.v]||'🐱';
+    const num=document.createElement('div');num.className='cnum';num.textContent=c.v;
+    el.appendChild(cat);el.appendChild(num);
+  }
+  return el;
+}
+function mkFD(){const el=document.createElement('div');el.className='card fd';el.textContent='🐾';return el;}
+function setMsg(t,c){const el=document.getElementById('msgbar');el.textContent=t;el.className='msg'+(c?' '+c:'');}
+function showEnd(G){
+  const me=myRole,P=G[me],O=G[me==='host'?'guest':'host'];
+  document.getElementById('eemoji').textContent=P.score>=WIN?'🎉':'😢';
+  document.getElementById('etitle').textContent=P.score>=WIN?'你赢了！':'你输了！';
+  document.getElementById('esub').textContent='最终比分：'+P.score+' — '+O.score;
+  document.getElementById('eov').style.display='flex';
+}
+function copyCode(){
+  navigator.clipboard.writeText(roomCode).catch(()=>{});
+  document.getElementById('btn-copy').textContent='✅ 已复制！';
+  setTimeout(()=>document.getElementById('btn-copy').textContent='📋 复制房间码',2000);
+}
+function showErr(m){document.getElementById('lerr').textContent=m;setTimeout(()=>document.getElementById('lerr').textContent='',4000);}
+</script>
+</body>
+</html>
