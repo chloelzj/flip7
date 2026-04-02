@@ -417,9 +417,20 @@ function doNextRound(){
 }
 
 // ── 核心游戏逻辑（HOST 执行）──
+function fixArrays(G){
+  if(!G) return G;
+  const toArr = v => v==null?[]:Array.isArray(v)?v:Object.values(v);
+  G.deck    = toArr(G.deck);
+  G.discard = toArr(G.discard);
+  if(G.host)  G.host.hand  = toArr(G.host.hand);
+  if(G.guest) G.guest.hand = toArr(G.guest.hand);
+  return G;
+}
+
 function applyMove(G, type, role, idx){
   if(!G) return;
-  G = JSON.parse(JSON.stringify(G)); // 深拷贝
+  G = JSON.parse(JSON.stringify(G));
+  G = fixArrays(G);
   const opp = role==='host'?'guest':'host';
   const P = G[role], O = G[opp];
 
